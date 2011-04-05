@@ -33,9 +33,23 @@
 #define MAKING_PYTHON
 
 #include "src/mod/module.h"
+#include <stdio.h>
 
 #undef global
 static Function *global = NULL;
+
+/*** TCL api ***/
+
+static int tcl_source_python STDVAR
+{
+	printf("\n\nPIE PIE PIE pie!\n\n");
+	return TCL_OK;
+}
+
+static tcl_cmds command_table[] = {
+  {"pysource", tcl_source_python},
+  {NULL, NULL}
+};
 
 /*** housekeeping ***/
 
@@ -55,6 +69,7 @@ static void python_report(int idx, int details)
 static char * python_close()
 {
 	Context;
+	rem_tcl_commands(command_table);
 	module_undepend(MODULE_NAME);
 	return NULL;
 }
@@ -84,6 +99,8 @@ char * python_start(Function *global_funcs)
 		module_undepend(MODULE_NAME);
 		return "This module requires Eggdrop 1.6.0 or later.";
 	}
+
+	add_tcl_commands(command_table);
 	
 	return NULL;
 }
