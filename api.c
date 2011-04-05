@@ -1,7 +1,10 @@
 #include "api.h"
 
-PyObject * api_version(PyObject *self, PyObject *args)
+extern Function *global;
+
+PyObject * api_test(PyObject *self, PyObject *args)
 {
-	return Py_BuildValue("(i,i)", MODULE_VER_MAJOR, MODULE_VER_MINOR);
+	do_tcl("python.mod", "putlog \"hello world\"");
+	return Py_None;
 }
 

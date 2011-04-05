@@ -27,14 +27,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define MODULE_NAME			"python"
-#define MAKING_PYTHON
 
 #include "api.h"
-#include "../module.h"
-
 #undef global
-static Function *global = NULL;
+Function *global = NULL;
 
 /*** configurables ***/
 
@@ -145,7 +141,7 @@ static Function python_table[] = {
 };
 
 static PyMethodDef api_table[] = {
-    {"__version__", api_version, METH_VARARGS, NULL},
+    {"test", api_test, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 
