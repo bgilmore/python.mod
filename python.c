@@ -1,30 +1,30 @@
 /* Copyright (c) 2011, Brandon Gilmore <brandon@mg2.org>
- * All rights reserved. 
- * 
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are 
- * met: 
- * 
- *  * Redistributions of source code must retain the above copyright 
- *    notice, this list of conditions and the following disclaimer. 
- *  * Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in the 
- *    documentation and/or other materials provided with the distribution. 
- *  * Neither the name of the software nor the names of its contributors 
- *    may be used to endorse or promote products derived from this software 
- *    without specific prior written permission. 
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED 
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER 
- * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of the software nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #define MODULE_NAME			"python"
@@ -32,21 +32,38 @@
 #define MODULE_VER_MINOR	1
 #define MAKING_PYTHON
 
+#include <Python.h>
 #include "src/mod/module.h"
-#include <stdio.h>
 
 #undef global
 static Function *global = NULL;
+
+/*** configurables ***/
+
+static char python_path[120];
+
+static tcl_strings tcl_stringtab[] = {
+	{"python-path", python_path, 120, 0},
+	{NULL,          NULL,        0,   0}
+};
+
+static int python_isolate = 0;
+
+static tcl_ints tcl_inttab[] = {
+	{"python-isolate", &python_isolate},
+	{NULL, NULL}
+};
+
 
 /*** TCL api ***/
 
 static int tcl_source_python STDVAR
 {
-	printf("\n\nPIE PIE PIE pie!\n\n");
+	PyRun_SimpleString(argv[1]);
 	return TCL_OK;
 }
 
-static tcl_cmds command_table[] = {
+static tcl_cmds tcl_commandtab[] = {
   {"pysource", tcl_source_python},
   {NULL, NULL}
 };
@@ -56,11 +73,14 @@ static tcl_cmds command_table[] = {
 static int python_expmem(void)
 {
 	Context;
+
 	return 0;
 }
 
 static void python_report(int idx, int details)
 {
+	Context;
+
 	if (details) {
 		dprintf(idx, "    Memory usage not instrumented\n");
 	}
@@ -69,7 +89,13 @@ static void python_report(int idx, int details)
 static char * python_close()
 {
 	Context;
-	rem_tcl_commands(command_table);
+
+	Py_Finalize();
+
+	rem_tcl_commands(tcl_commandtab);
+	rem_tcl_strings(tcl_stringtab);
+	rem_tcl_ints(tcl_inttab);
+
 	module_undepend(MODULE_NAME);
 	return NULL;
 }
@@ -89,8 +115,9 @@ static Function python_table[] = {
 char * python_start(Function *global_funcs)
 {
 	global = global_funcs;
-
 	Context;
+
+	Py_InitializeEx(0);
 
 	module_register(MODULE_NAME, python_table, \
 			MODULE_VER_MAJOR, MODULE_VER_MINOR);
@@ -100,7 +127,9 @@ char * python_start(Function *global_funcs)
 		return "This module requires Eggdrop 1.6.0 or later.";
 	}
 
-	add_tcl_commands(command_table);
+	add_tcl_commands(tcl_commandtab);
+	add_tcl_strings(tcl_stringtab);
+	add_tcl_ints(tcl_inttab);
 	
 	return NULL;
 }
