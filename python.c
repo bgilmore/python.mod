@@ -28,12 +28,10 @@
  */
 
 #define MODULE_NAME			"python"
-#define MODULE_VER_MAJOR	0
-#define MODULE_VER_MINOR	1
 #define MAKING_PYTHON
 
-#include <Python.h>
-#include "src/mod/module.h"
+#include "api.h"
+#include "../module.h"
 
 #undef global
 static Function *global = NULL;
@@ -112,15 +110,11 @@ static tcl_cmds tcl_commandtab[] = {
 
 static int python_expmem(void)
 {
-	Context;
-
 	return 0;
 }
 
 static void python_report(int idx, int details)
 {
-	Context;
-
 	if (details) {
 		dprintf(idx, "    Memory usage not instrumented\n");
 	}
@@ -128,8 +122,6 @@ static void python_report(int idx, int details)
 
 static char * python_close()
 {
-	Context;
-
 	Py_Finalize();
 
 	rem_tcl_commands(tcl_commandtab);
@@ -152,14 +144,20 @@ static Function python_table[] = {
 	(Function) python_report,
 };
 
+static PyMethodDef api_table[] = {
+    {"__version__", api_version, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}
+};
+
 char * python_start(Function *global_funcs)
 {
 	global = global_funcs;
-	Context;
 
-	Py_InitializeEx(0);
 	memset(python_path, 0, 2048);
 	python_isolate = 0;
+
+	Py_InitializeEx(0);
+	Py_InitModule("eggdrop", api_table);
 
 	module_register(MODULE_NAME, python_table, \
 			MODULE_VER_MAJOR, MODULE_VER_MINOR);
