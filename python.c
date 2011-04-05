@@ -40,19 +40,18 @@ static Function *global = NULL;
 
 /*** configurables ***/
 
-static char python_path[120];
+static char python_path[2048];
 
 static tcl_strings tcl_stringtab[] = {
-	{"python-path", python_path, 120, 0},
-	{NULL,          NULL,        0,   0}
+	{"python-path", python_path, 2048, 0},
+	{NULL,          NULL,        0,    0}
 };
 
-static int python_isolate = 0;
-static int python_isolate_fixed = -1;
+static int python_isolate, python_isolated = -1;
 
 static tcl_ints tcl_inttab[] = {
 	{"python-isolate", &python_isolate},
-	{NULL, NULL}
+	{NULL,             NULL}
 };
 
 
@@ -64,14 +63,14 @@ static int tcl_load_python STDVAR
 	PyObject *modname, *module;
 
 	// fix the value of 'python-isolate' for the lifetime of the module
-	if (python_isolate_fixed == -1) {
+	if (python_isolated == -1) {
 		switch (python_isolate) {
 			case 0:
-				python_isolate_fixed = 0;
+				python_isolated = 0;
 				break;
 
 			case 1:
-				python_isolate_fixed = 1;
+				python_isolated = 1;
 				// create interp list
 				break;
 
@@ -81,7 +80,7 @@ static int tcl_load_python STDVAR
 		}
 	}
 
-	if (python_isolate) {
+	if (python_isolated) {
 		subint = Py_NewInterpreter();
 		PyThreadState_Swap(subint);
 	}
@@ -105,7 +104,7 @@ static int tcl_load_python STDVAR
 
 static tcl_cmds tcl_commandtab[] = {
   {"loadpython", tcl_load_python},
-  {NULL, NULL}
+  {NULL,         NULL}
 };
 
 
@@ -159,6 +158,8 @@ char * python_start(Function *global_funcs)
 	Context;
 
 	Py_InitializeEx(0);
+	memset(python_path, 0, 2048);
+	python_isolate = 0;
 
 	module_register(MODULE_NAME, python_table, \
 			MODULE_VER_MAJOR, MODULE_VER_MINOR);
