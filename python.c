@@ -48,6 +48,7 @@ static tcl_strings tcl_stringtab[] = {
 };
 
 static int python_isolate = 0;
+static int python_isolate_fixed = -1;
 
 static tcl_ints tcl_inttab[] = {
 	{"python-isolate", &python_isolate},
@@ -57,16 +58,56 @@ static tcl_ints tcl_inttab[] = {
 
 /*** TCL api ***/
 
-static int tcl_source_python STDVAR
+static int tcl_load_python STDVAR
 {
-	PyRun_SimpleString(argv[1]);
+	PyThreadState *subint;
+	PyObject *modname, *module;
+
+	// fix the value of 'python-isolate' for the lifetime of the module
+	if (python_isolate_fixed == -1) {
+		switch (python_isolate) {
+			case 0:
+				python_isolate_fixed = 0;
+				break;
+
+			case 1:
+				python_isolate_fixed = 1;
+				// create interp list
+				break;
+
+			default:
+				Tcl_AppendResult(irp, "Invalid 'python-isolate' mode", NULL);
+				return TCL_ERROR;
+		}
+	}
+
+	if (python_isolate) {
+		subint = Py_NewInterpreter();
+		PyThreadState_Swap(subint);
+	}
+
+	modname = PyString_FromString(argv[1]);
+	if (modname == NULL) {
+		Tcl_AppendResult(irp, "Unable to parse module name", NULL);
+		return TCL_ERROR;
+	}
+
+	module = PyImport_Import(modname);
+	Py_DECREF(modname);
+
+	if (module == NULL) {
+		Tcl_AppendResult(irp, "Unable to load '", argv[1] ,"' module", NULL);
+		return TCL_ERROR;
+	}
+
 	return TCL_OK;
 }
 
 static tcl_cmds tcl_commandtab[] = {
-  {"pysource", tcl_source_python},
+  {"loadpython", tcl_load_python},
   {NULL, NULL}
 };
+
 
 /*** housekeeping ***/
 
