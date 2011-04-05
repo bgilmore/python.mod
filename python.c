@@ -33,10 +33,11 @@
 #define MAKING_PYTHON
 
 #include "src/mod/module.h"
+
 #undef global
 static Function *global = NULL;
 
-/* housekeeping */
+/*** housekeeping ***/
 
 static int python_expmem(void)
 {
@@ -59,7 +60,7 @@ static char * python_close()
 }
 
 
-/* module initialization */
+/*** module initialization ***/
 
 EXPORT_SCOPE char * python_start();
 
