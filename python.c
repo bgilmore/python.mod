@@ -29,9 +29,19 @@
 
 
 #include "api.h"
+#include "khash.h"
+#include "pymod.h"
 
 #undef global
 Function *global = NULL;
+
+KHASH_MAP_INIT_INT(pymods, pymod_t);
+static khash_t(pymods) *pymod_table;
+static uint32_t pymod_base_id = 0;
+
+KHASH_MAP_INIT_INT(callbacks, callback_t);
+static khash_t(callbacks) *callback_table;
+static uint32_t callback_base_id = 0;
 
 /*** configurables ***/
 
@@ -54,8 +64,11 @@ static tcl_ints tcl_inttab[] = {
 
 static int tcl_load_python STDVAR
 {
-	PyThreadState *subint;
+	PyThreadState *subint = NULL;
 	PyObject *modname, *module;
+	pymod_t *pymod = NULL;
+	uint32_t pymod_id;
+	int32_t k, r;
 
 	// fix the value of 'python-isolate' for the lifetime of the module
 	if (python_isolated == -1) {
@@ -83,7 +96,7 @@ static int tcl_load_python STDVAR
 	modname = PyString_FromString(argv[1]);
 	if (modname == NULL) {
 		Tcl_AppendResult(irp, "Unable to parse module name", NULL);
-		return TCL_ERROR;
+		goto err;
 	}
 
 	module = PyImport_Import(modname);
@@ -91,10 +104,24 @@ static int tcl_load_python STDVAR
 
 	if (module == NULL) {
 		Tcl_AppendResult(irp, "Unable to load '", argv[1] ,"' module", NULL);
-		return TCL_ERROR;
+		goto err;
 	}
 
+	pymod_id = pymod_base_id++;
+	k = kh_put(pymods, pymod_table, pymod_id, &r);
+	pymod = &(kh_val(pymod_table, k));
+
+	pymod->id = pymod_id;
+	pymod->subint = subint;
+	pymod->module = module;
+	
 	return TCL_OK;
+
+err:
+	if (subint != NULL)
+		Py_EndInterpreter(subint);
+
+	return TCL_ERROR;
 }
 
 static tcl_cmds tcl_commandtab[] = {
@@ -119,11 +146,14 @@ static void python_report(int idx, int details)
 
 static char * python_close()
 {
-	Py_Finalize();
+	kh_destroy(pymods, pymod_table);
+	kh_destroy(callbacks, callback_table);
 
 	rem_tcl_commands(tcl_commandtab);
 	rem_tcl_strings(tcl_stringtab);
 	rem_tcl_ints(tcl_inttab);
+
+	Py_Finalize();
 
 	module_undepend(MODULE_NAME);
 	return NULL;
@@ -150,12 +180,6 @@ char * python_start(Function *global_funcs)
 {
 	global = global_funcs;
 
-	memset(python_path, 0, 2048);
-	python_isolate = 0;
-
-	Py_InitializeEx(0);
-	Py_InitModule("eggdrop", api_table);
-
 	module_register(MODULE_NAME, python_table, \
 			MODULE_VER_MAJOR, MODULE_VER_MINOR);
 
@@ -164,9 +188,18 @@ char * python_start(Function *global_funcs)
 		return "This module requires Eggdrop 1.6.0 or later.";
 	}
 
+	memset(python_path, 0, 2048);
+	python_isolate = 0;
+
+	Py_InitializeEx(0);
+	Py_InitModule("eggdrop", api_table);
+
 	add_tcl_commands(tcl_commandtab);
 	add_tcl_strings(tcl_stringtab);
 	add_tcl_ints(tcl_inttab);
+
+	pymod_table = kh_init(pymods);
+	callback_table = kh_init(callbacks);
 	
 	return NULL;
 }

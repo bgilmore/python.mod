@@ -1,3 +1,6 @@
+#ifndef __AC_KHASH_H
+#define __AC_KHASH_H
+
 /* The MIT License
 
    Copyright (c) 2008, 2009, 2011 by Attractive Chaos <attractor@live.co.uk>
@@ -23,84 +26,19 @@
    SOFTWARE.
 */
 
-/*
-  An example:
-
-#include "khash.h"
-KHASH_MAP_INIT_INT(32, char)
-int main() {
-	int ret, is_missing;
-	khiter_t k;
-	khash_t(32) *h = kh_init(32);
-	k = kh_put(32, h, 5, &ret);
-	if (!ret) kh_del(32, h, k);
-	kh_value(h, k) = 10;
-	k = kh_get(32, h, 10);
-	is_missing = (k == kh_end(h));
-	k = kh_get(32, h, 5);
-	kh_del(32, h, k);
-	for (k = kh_begin(h); k != kh_end(h); ++k)
-		if (kh_exist(h, k)) kh_value(h, k) = 1;
-	kh_destroy(32, h);
-	return 0;
-}
-*/
-
-/*
-  2011-02-14 (0.2.5):
-
-    * Allow to declare global functions.
-
-  2009-09-26 (0.2.4):
-
-    * Improve portability
-
-  2008-09-19 (0.2.3):
-
-	* Corrected the example
-	* Improved interfaces
-
-  2008-09-11 (0.2.2):
-
-	* Improved speed a little in kh_put()
-
-  2008-09-10 (0.2.1):
-
-	* Added kh_clear()
-	* Fixed a compiling error
-
-  2008-09-02 (0.2.0):
-
-	* Changed to token concatenation which increases flexibility.
-
-  2008-08-31 (0.1.2):
-
-	* Fixed a bug in kh_get(), which has not been tested previously.
-
-  2008-08-31 (0.1.1):
-
-	* Added destructor
-*/
-
-
-#ifndef __AC_KHASH_H
-#define __AC_KHASH_H
-
-/*!
-  @header
-
-  Generic hash table library.
-
-  @copyright Heng Li
+/* Eggdrop tries to enforce the use of nmalloc and nfree, but given that
+ * we're embedding a whole Python VM with its own memory management system
+ * I don't think there's any harm in just using good 'ol free in here.
+ * Besides... they didn't provide ncalloc.
  */
+#undef malloc
+#undef free
 
 #define AC_VERSION_KHASH_H "0.2.5"
 
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-
-/* compipler specific configuration */
 
 #if UINT_MAX == 0xffffffffu
 typedef unsigned int khint32_t;
