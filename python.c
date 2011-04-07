@@ -29,6 +29,7 @@
 
 
 #include "api.h"
+
 #undef global
 Function *global = NULL;
 
