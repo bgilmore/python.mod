@@ -76,7 +76,6 @@ static int tcl_load_python STDVAR
 
 			case 1:
 				python_isolated = 1;
-				// create interp list
 				break;
 
 			default:
@@ -88,6 +87,7 @@ static int tcl_load_python STDVAR
 	if (python_isolated) {
 		subint = Py_NewInterpreter();
 		PyThreadState_Swap(subint);
+		Py_InitModule("eggdrop", api_table);
 	}
 
 	modname = PyString_FromString(argv[1]);
