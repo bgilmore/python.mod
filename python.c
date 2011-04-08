@@ -172,7 +172,7 @@ static Function python_table[] = {
 };
 
 static PyMethodDef api_table[] = {
-    {"test", api_test, METH_VARARGS, NULL},
+    {"putlog", api_putlog, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

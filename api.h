@@ -9,6 +9,8 @@
 #define MODULE_VER_MINOR	1
 #define MAKING_PYTHON
 
+#define API_METHOD			(PyObject *self, PyObject *args)
+
 typedef uint32_t callback_id_t;
 typedef struct {
 	callback_id_t	id;
@@ -16,6 +18,7 @@ typedef struct {
 	PyObject		*callable;
 } callback_t;
 
-PyObject * api_test(PyObject *self, PyObject *args);
+PyObject * api_putlog API_METHOD;
+
 
 #endif
