@@ -29,19 +29,14 @@
 
 
 #include "api.h"
-#include "khash.h"
 #include "pymod.h"
 
 #undef global
 Function *global = NULL;
 
-KHASH_MAP_INIT_INT(pymods, pymod_t);
+extern khash_t(callbacks) *callback_table;
 static khash_t(pymods) *pymod_table;
 static uint32_t pymod_base_id = 0;
-
-KHASH_MAP_INIT_INT(callbacks, callback_t);
-static khash_t(callbacks) *callback_table;
-static uint32_t callback_base_id = 0;
 
 extern PyMethodDef api_table[];
 static Tcl_Namespace *ns = NULL;

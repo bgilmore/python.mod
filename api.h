@@ -2,6 +2,7 @@
 #define _API_H_
 
 #include <Python.h>
+#include "khash.h"
 #include "../module.h"
 
 #define MODULE_NAME			"python"
@@ -20,5 +21,10 @@ typedef struct {
 
 PyObject * api_bind API_METHOD;
 PyObject * api_putlog API_METHOD;
+
+/* khash needs access to stdlib */
+#undef malloc
+#undef free
+KHASH_MAP_INIT_INT(callbacks, callback_t);
 
 #endif

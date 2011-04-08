@@ -1,13 +1,19 @@
-#include <stdarg.h>
 #include "api.h"
 
 extern Function *global;
+
+khash_t(callbacks) *callback_table;
+uint32_t callback_base_id = 0;
 
 PyObject * api_bind API_METHOD
 {
 	PyObject *callable;
 	char *type, *flags, *parm;
 	PyArg_ParseTuple(args, "sssO", &type, &flags, &parm, &callable);
+
+	Tcl_SetVar(interp, "python::arg_type", type, 0);
+	Tcl_SetVar(interp, "python::arg_flags", flags, 0);
+	Tcl_SetVar(interp, "python::arg_parm", parm, 0);
 
 	fprintf(stderr, "bind request for type=%s, flags=%s, parm=%s\n", type, flags, parm);
 
