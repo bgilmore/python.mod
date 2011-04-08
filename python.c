@@ -87,6 +87,7 @@ static int tcl_load_python STDVAR
 
 	if (python_isolated) {
 		subint = Py_NewInterpreter();
+		Py_InitModule("eggdrop", api_table);
 		PyThreadState_Swap(subint);
 	}
 
