@@ -43,6 +43,8 @@ KHASH_MAP_INIT_INT(callbacks, callback_t);
 static khash_t(callbacks) *callback_table;
 static uint32_t callback_base_id = 0;
 
+Tcl_Namespace *ns = NULL;
+
 /*** configurables ***/
 
 static char python_path[2048];
@@ -152,6 +154,7 @@ static char * python_close()
 	rem_tcl_commands(tcl_commandtab);
 	rem_tcl_strings(tcl_stringtab);
 	rem_tcl_ints(tcl_inttab);
+	Tcl_DeleteNamespace(ns);
 
 	Py_Finalize();
 
@@ -194,6 +197,7 @@ char * python_start(Function *global_funcs)
 	Py_InitializeEx(0);
 	Py_InitModule("eggdrop", api_table);
 
+	ns = Tcl_CreateNamespace(interp, "python", NULL, NULL);
 	add_tcl_commands(tcl_commandtab);
 	add_tcl_strings(tcl_stringtab);
 	add_tcl_ints(tcl_inttab);
