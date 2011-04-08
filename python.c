@@ -174,11 +174,6 @@ static Function python_table[] = {
 	(Function) python_report,
 };
 
-static PyMethodDef api_table[] = {
-    {"putlog", api_putlog, METH_VARARGS, NULL},
-    {NULL, NULL, 0, NULL}
-};
-
 char * python_start(Function *global_funcs)
 {
 	global = global_funcs;
