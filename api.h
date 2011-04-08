@@ -15,6 +15,7 @@
 typedef uint32_t callback_id_t;
 typedef struct {
 	callback_id_t	id;
+	char			*name;
 	PyThreadState	*subint;
 	PyObject		*callable;
 } callback_t;

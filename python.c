@@ -27,7 +27,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include "api.h"
 #include "pymod.h"
 
@@ -50,7 +49,7 @@ static tcl_strings tcl_stringtab[] = {
 	{NULL,          NULL,        0,    0}
 };
 
-static int python_isolate, python_isolated = -1;
+int python_isolate, python_isolated = -1;
 
 static tcl_ints tcl_inttab[] = {
 	{"python-isolate", &python_isolate},
@@ -126,8 +125,8 @@ err:
 }
 
 static tcl_cmds tcl_commandtab[] = {
-  {"loadpython", tcl_load_python},
-  {NULL,         NULL}
+  {"loadpython",       tcl_load_python},
+  {NULL,               NULL}
 };
 
 
