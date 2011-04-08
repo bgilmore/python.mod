@@ -6,20 +6,30 @@ extern int python_isolated;
 khash_t(callbacks) *callback_table;
 static uint32_t callback_base_id = 0;
 
+/* This flag is used to mark when the Eggdrop TCL API is usable by our
+ * interpreter threads since the main runloop isn't inherently thread-safe */
+uint8_t api_available = 0;
+
 /*** callback plumbing ***/
 
 static int run_callback STDVAR
 {
-	/* TODO: needs NULL checks */
+	/* TODO: 
+	 * - needs a return value for certain binds
+	 * - null checking everywhere
+	 */
+
 	PyObject *tmp, *args = NULL;
 	callback_t *callback;
 	uint32_t callback_id;
 	int32_t i, k;
 
+	API_ACTIVE();
+
 	callback_id = strtol(argv[0]+17, NULL, 10);
 	if (errno == EINVAL) {
 		Tcl_AppendResult(irp, "Invalid callback ID", NULL);
-		return TCL_ERROR;
+		goto err;
 	}
 
 	k = kh_get(callbacks, callback_table, callback_id);
@@ -38,7 +48,18 @@ static int run_callback STDVAR
 	PyObject_Call(callback->callable, args, NULL);
 	Py_DECREF(args);
 
+	if (PyErr_Occurred() != NULL) {
+		Tcl_AppendResult(irp, "Uncaught Python exception", NULL);
+		PyErr_PrintEx(0);
+		goto err;
+	}
+
+	API_INACTIVE();
 	return TCL_OK;
+
+err:
+	API_INACTIVE();
+	return TCL_ERROR;
 }
 
 static callback_t * install_callback(PyObject *callable)
@@ -76,6 +97,7 @@ static callback_t * install_callback(PyObject *callable)
 	return callback;
 }
 
+
 /*** TCL bridge ***/
 
 API_METHOD(bind)
@@ -83,6 +105,8 @@ API_METHOD(bind)
 	PyObject *callable;
 	callback_t *callback;
 	char *type, *flags, *parm, *bind;
+
+	API_CHECK();
 
 	PyArg_ParseTuple(args, "sssO", &type, &flags, &parm, &callable);
 
@@ -109,8 +133,10 @@ API_METHOD(bind)
 API_METHOD(putlog)
 {
 	char *message;
-	PyArg_ParseTuple(args, "s", &message);
 
+	API_CHECK();
+
+	PyArg_ParseTuple(args, "s", &message);
 	Tcl_SetVar(interp, "python::arg_msg", message, 0);
 	Tcl_Eval(interp, "putlog $python::arg_msg");
 	Tcl_UnsetVar(interp, "python::arg_msg", 0);

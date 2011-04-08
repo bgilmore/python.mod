@@ -32,6 +32,7 @@
 
 #undef global
 Function *global = NULL;
+extern uint8_t api_available;
 
 extern khash_t(callbacks) *callback_table;
 static khash_t(pymods) *pymod_table;
@@ -67,6 +68,8 @@ static int tcl_load_python STDVAR
 	uint32_t pymod_id;
 	int32_t k, r;
 
+	API_ACTIVE();
+
 	// fix the value of 'python-isolate' for the lifetime of the module
 	if (python_isolated == -1) {
 		switch (python_isolate) {
@@ -80,7 +83,7 @@ static int tcl_load_python STDVAR
 
 			default:
 				Tcl_AppendResult(irp, "Invalid 'python-isolate' mode", NULL);
-				return TCL_ERROR;
+				goto err;
 		}
 	}
 
@@ -115,12 +118,14 @@ static int tcl_load_python STDVAR
 	pymod->subint = subint;
 	pymod->module = module;
 	
+	API_INACTIVE();
 	return TCL_OK;
 
 err:
 	if (subint != NULL)
 		Py_EndInterpreter(subint);
 
+	API_INACTIVE();
 	return TCL_ERROR;
 }
 

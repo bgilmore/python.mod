@@ -14,6 +14,13 @@
 #define API_ENTRY(symbol)	{#symbol, api_##symbol, METH_VARARGS, NULL}
 #define API_END				{NULL, NULL, 0, NULL}
 
+#define API_ACTIVE()		api_available = 1
+#define API_INACTIVE()		api_available = 0
+#define API_CHECK()			if (api_available == 0) { \
+								PyErr_SetString(PyExc_RuntimeError, "eggdrop methods may only be used at load time and in event handlers"); \
+								return NULL; \
+							}
+
 typedef uint32_t callback_id_t;
 typedef struct {
 	callback_id_t	id;
