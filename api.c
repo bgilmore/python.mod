@@ -19,7 +19,7 @@ static int run_callback STDVAR
 	 * - null checking everywhere
 	 */
 
-	PyObject *tmp, *args = NULL;
+	PyObject *tmp, *args, *ret = NULL;
 	callback_t *callback;
 	uint32_t callback_id;
 	int32_t i, k;
@@ -45,13 +45,26 @@ static int run_callback STDVAR
 		PyTuple_SET_ITEM(args, i - 1, tmp);
 	}
 
-	PyObject_Call(callback->callable, args, NULL);
+	ret = PyObject_Call(callback->callable, args, NULL);
 	Py_DECREF(args);
 
 	if (PyErr_Occurred() != NULL) {
 		Tcl_AppendResult(irp, "Uncaught Python exception", NULL);
 		PyErr_PrintEx(0);
 		goto err;
+	} 
+
+	if ((ret != Py_None) && (ret != NULL)) {
+		tmp = PyObject_Str(ret);
+		Py_DECREF(ret);
+
+		if (tmp == NULL) {
+			Tcl_AppendResult(irp, "Invalid return value", NULL);
+			goto err;
+		} else {
+			Tcl_AppendResult(irp, PyString_AS_STRING(tmp), NULL);
+			Py_DECREF(tmp);
+		}
 	}
 
 	API_INACTIVE();
