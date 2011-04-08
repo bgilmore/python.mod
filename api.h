@@ -10,9 +10,12 @@
 #define MODULE_VER_MINOR	1
 #define MAKING_PYTHON
 
-#define API_METHOD(symbol)	static PyObject * api_##symbol(PyObject *self, PyObject *args)
-#define API_ENTRY(symbol)	{#symbol, api_##symbol, METH_VARARGS, NULL}
-#define API_END				{NULL, NULL, 0, NULL}
+#define APIDEF_METHOD(symbol)	static PyObject * api_##symbol(PyObject *self, PyObject *args)
+#define APIDEF_KWMETHOD(symbol)	static PyObject * api_##symbol(PyObject *self, PyObject *args, PyObject *kw)
+
+#define API_METHOD(symbol)		{#symbol, (PyCFunction)api_##symbol, METH_VARARGS}
+#define API_KWMETHOD(symbol)	{#symbol, (PyCFunction)api_##symbol, METH_VARARGS|METH_KEYWORDS}
+#define API_END					{NULL}
 
 #define API_ACTIVE()		api_available = 1
 #define API_INACTIVE()		api_available = 0

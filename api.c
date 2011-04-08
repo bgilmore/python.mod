@@ -112,8 +112,11 @@ static callback_t * install_callback(PyObject *callable)
 
 
 /*** TCL bridge ***/
+/* we need to kill some of the global[] macros to avoid collisions */
+#undef putlog
+#undef putserv
 
-API_METHOD(bind)
+APIDEF_METHOD(bind)
 {
 	PyObject *callable;
 	callback_t *callback;
@@ -121,7 +124,8 @@ API_METHOD(bind)
 
 	API_CHECK();
 
-	PyArg_ParseTuple(args, "sssO", &type, &flags, &parm, &callable);
+	if (! PyArg_ParseTuple(args, "sssO", &type, &flags, &parm, &callable))
+		return NULL;
 
 	callback = install_callback(callable);
 
@@ -143,23 +147,52 @@ API_METHOD(bind)
 	return Py_None;
 }
 
-API_METHOD(putlog)
+APIDEF_METHOD(putlog)
 {
-	char *message;
+	char *msg;
 
 	API_CHECK();
 
-	PyArg_ParseTuple(args, "s", &message);
-	Tcl_SetVar(interp, "python::arg_msg", message, 0);
+	if (! PyArg_ParseTuple(args, "s", &msg))
+		return NULL;
+
+	Tcl_SetVar(interp, "python::arg_msg", msg, 0);
 	Tcl_Eval(interp, "putlog $python::arg_msg");
 	Tcl_UnsetVar(interp, "python::arg_msg", 0);
 
 	return Py_None;
 }
 
+APIDEF_KWMETHOD(putserv)
+{
+	PyObject *next = NULL;
+	static char *opts[] = {"msg", "next", NULL};
+	char *msg;
+
+	if (! PyArg_ParseTupleAndKeywords(args, kw, "s|O", opts, &msg, &next))
+		return NULL;
+
+	Tcl_SetVar(interp, "python::arg_msg", msg, 0);
+
+	if ((next == Py_False) || (next == NULL)) {
+		Tcl_Eval(interp, "putserv $python::arg_msg");
+	} else if (next == Py_True) {
+		Tcl_Eval(interp, "putserv $python::arg_msg -next");
+	} else {
+		PyErr_SetString(PyExc_TypeError,
+		    "'next' kwarg to 'putserv' must be True or False");
+		return NULL;
+	}
+
+	Tcl_UnsetVar(interp, "python::arg_msg", 0);
+
+	return Py_None;
+}
+
 PyMethodDef api_table[] = {
-	API_ENTRY(bind),
-	API_ENTRY(putlog),
+	API_METHOD(bind),
+	API_METHOD(putlog),
+	API_KWMETHOD(putserv),
 	API_END
 };
 
