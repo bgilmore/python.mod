@@ -103,7 +103,7 @@ static int tcl_load_python STDVAR
 		if (PyErr_Occurred() != NULL)
 			PyErr_PrintEx(0);
 
-		Tcl_AppendResult(irp, "Unable to load '", argv[1] ,"' module\n", NULL);
+		Tcl_AppendResult(irp, "Unable to load '", argv[1] ,"' module", NULL);
 		goto err;
 	}
 
