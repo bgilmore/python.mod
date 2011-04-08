@@ -6,6 +6,8 @@ extern int python_isolated;
 khash_t(callbacks) *callback_table;
 static uint32_t callback_base_id = 0;
 
+/*** callback plumbing ***/
+
 static int run_callback STDVAR
 {
 	/* TODO: needs NULL checks */
@@ -74,7 +76,9 @@ static callback_t * install_callback(PyObject *callable)
 	return callback;
 }
 
-PyObject * api_bind API_METHOD
+/*** TCL bridge ***/
+
+API_METHOD(bind)
 {
 	PyObject *callable;
 	callback_t *callback;
@@ -102,7 +106,7 @@ PyObject * api_bind API_METHOD
 	return Py_None;
 }
 
-PyObject * api_putlog API_METHOD
+API_METHOD(putlog)
 {
 	char *message;
 	PyArg_ParseTuple(args, "s", &message);
@@ -115,8 +119,8 @@ PyObject * api_putlog API_METHOD
 }
 
 PyMethodDef api_table[] = {
-    {"bind", api_bind, METH_VARARGS, NULL},
-    {"putlog", api_putlog, METH_VARARGS, NULL},
-    {NULL, NULL, 0, NULL}
+	API_ENTRY(bind),
+	API_ENTRY(putlog),
+	API_END
 };
 

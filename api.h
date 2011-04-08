@@ -10,7 +10,9 @@
 #define MODULE_VER_MINOR	1
 #define MAKING_PYTHON
 
-#define API_METHOD			(PyObject *self, PyObject *args)
+#define API_METHOD(symbol)	static PyObject * api_##symbol(PyObject *self, PyObject *args)
+#define API_ENTRY(symbol)	{#symbol, api_##symbol, METH_VARARGS, NULL}
+#define API_END				{NULL, NULL, 0, NULL}
 
 typedef uint32_t callback_id_t;
 typedef struct {
@@ -19,9 +21,6 @@ typedef struct {
 	PyThreadState	*subint;
 	PyObject		*callable;
 } callback_t;
-
-PyObject * api_bind API_METHOD;
-PyObject * api_putlog API_METHOD;
 
 /* khash needs access to stdlib */
 #undef malloc
