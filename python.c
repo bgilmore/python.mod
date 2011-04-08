@@ -43,7 +43,8 @@ KHASH_MAP_INIT_INT(callbacks, callback_t);
 static khash_t(callbacks) *callback_table;
 static uint32_t callback_base_id = 0;
 
-Tcl_Namespace *ns = NULL;
+extern PyMethodDef api_table[];
+static Tcl_Namespace *ns = NULL;
 
 /*** configurables ***/
 
@@ -105,7 +106,10 @@ static int tcl_load_python STDVAR
 	Py_DECREF(modname);
 
 	if (module == NULL) {
-		Tcl_AppendResult(irp, "Unable to load '", argv[1] ,"' module", NULL);
+		if (PyErr_Occurred() != NULL)
+			PyErr_PrintEx(0);
+
+		Tcl_AppendResult(irp, "Unable to load '", argv[1] ,"' module\n", NULL);
 		goto err;
 	}
 

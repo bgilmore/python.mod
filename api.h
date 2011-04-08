@@ -18,11 +18,7 @@ typedef struct {
 	PyObject		*callable;
 } callback_t;
 
+PyObject * api_bind API_METHOD;
 PyObject * api_putlog API_METHOD;
-
-PyMethodDef api_table[] = {
-    {"putlog", api_putlog, METH_VARARGS, NULL},
-    {NULL, NULL, 0, NULL}
-};
 
 #endif
