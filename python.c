@@ -29,6 +29,7 @@
 
 #include "api.h"
 #include "pymod.h"
+#include "../module.h"
 
 #undef global
 Function *global = NULL;

@@ -3,7 +3,6 @@
 
 #include <Python.h>
 #include "khash.h"
-#include "../module.h"
 
 #define MODULE_NAME			"python"
 #define MODULE_VER_MAJOR	0

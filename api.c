@@ -1,4 +1,5 @@
 #include "api.h"
+#include "../module.h"
 
 extern Function *global;
 extern int python_isolated;
