@@ -1,7 +1,8 @@
 #include "api.h"
 #include "../module.h"
 
-extern Function *global;
+#undef global
+static Function *global;
 extern int python_isolated;
 
 khash_t(callbacks) *callback_table;

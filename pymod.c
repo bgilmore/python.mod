@@ -32,7 +32,7 @@
 #include "../module.h"
 
 #undef global
-Function *global = NULL;
+static Function *global = NULL;
 extern uint8_t api_available;
 
 extern khash_t(callbacks) *callback_table;

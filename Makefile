@@ -1,6 +1,7 @@
 ## Makefile for src/mod/python.mod
 
-srcdir = .
+srcdir  = .
+objects = api.o pymod.o
 
 # needed for building on OSX
 PYTHON_INCLUDE = /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6
@@ -17,8 +18,8 @@ static: ../python.o
 
 modules: ../../../python.$(MOD_EXT)
 
-../python.o: api.o pymod.o
-	$(REAL_LD) -o ../python.o -r *.o
+../python.o: $(objects)
+	$(REAL_LD) -o ../python.o -r $?
 
 ../../../python.$(MOD_EXT): ../python.o
 	$(LD) -L$(PYTHON_LIB) -o ../../../python.$(MOD_EXT) ../python.o -lpython $(XLIBS) $(MODULE_XLIBS)
@@ -31,5 +32,5 @@ depend:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -MM *.c > .depend
 
 clean:
-	@rm -f .depend *.o *.$(MOD_EXT)
+	@rm -fv .depend *.o *.$(MOD_EXT)
 
