@@ -1,10 +1,10 @@
 python.mod
 ==========
 
-Tcl is awful. Seriously, *awful*. This module allows you to write Eggdrop
+Tcl is awful. Seriously, **awful**. This module allows you to write Eggdrop
 scripts in Python instead.
 
-This module is still *very* young, immature, and untested. Still, beats
+This module is still **very** young, immature, and untested. Still, beats
 writing Tcl.
 
 
