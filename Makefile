@@ -17,7 +17,7 @@ static: ../python.o
 
 modules: ../../../python.$(MOD_EXT)
 
-../python.o: api.o python.o
+../python.o: api.o pymod.o
 	$(REAL_LD) -o ../python.o -r *.o
 
 ../../../python.$(MOD_EXT): ../python.o
