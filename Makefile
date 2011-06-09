@@ -1,7 +1,7 @@
 ## Makefile for src/mod/python.mod
 
 srcdir  = .
-objects = api.o pymod.o
+objects = api.o bridge.o pymod.o
 
 # needed for building on OSX
 PYTHON_INCLUDE = /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6

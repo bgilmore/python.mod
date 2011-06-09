@@ -182,7 +182,8 @@ APIDEF_KWMETHOD(putserv)
 		Tcl_Eval(interp, "putserv $python::arg_msg -next");
 	} else {
 		PyErr_SetString(PyExc_TypeError,
-		    "'next' kwarg to 'putserv' must be True or False");
+			"all arguments must be callable or coercible to str");
+
 		return NULL;
 	}
 

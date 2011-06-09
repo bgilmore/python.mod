@@ -28,6 +28,7 @@
  */
 
 #include "api.h"
+#include "bridge.h"
 #include "pymod.h"
 #include "../module.h"
 
@@ -180,6 +181,10 @@ static Function python_table[] = {
 
 char * python_start(Function *global_funcs)
 {
+	PyObject *api = NULL,
+			 *mod = NULL;
+
+	/* fixup external linkage */
 	global = global_funcs;
 
 	module_register(MODULE_NAME, python_table, \
@@ -194,7 +199,9 @@ char * python_start(Function *global_funcs)
 	python_isolate = 0;
 
 	Py_InitializeEx(0);
-	Py_InitModule("eggdrop", api_table);
+	mod = Py_InitModule("eggdrop", api_table);
+	api = _PyObject_New(&TclBridgeType);
+    PyModule_AddObject(mod, "api", api);
 
 	ns = Tcl_CreateNamespace(interp, "python", NULL, NULL);
 	add_tcl_commands(tcl_commandtab);
