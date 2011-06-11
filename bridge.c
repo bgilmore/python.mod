@@ -1,7 +1,13 @@
 #include "bridge.h"
 #include "pymod.h"
 
-static int run_command(PyObject *py_cmdv)
+static unsigned int command_id = 0;
+static PyObject *command_q  = NULL,
+				*result_map = NULL;
+
+static PyThreadState *main_thread;
+
+static PyObject * run_command(PyObject *py_cmdv)
 {
 	Tcl_Obj *tcl_cmdv, *tcl_arg, **objv;
 	PyObject *py_arg;
@@ -52,18 +58,63 @@ static int run_command(PyObject *py_cmdv)
 
 out:
 	Tcl_DecrRefCount(tcl_cmdv);
-	return 0;
+	return Py_None;
 }
 
-static int queue_command(Tcl_Obj *cmdv)
+static PyObject * run_queued(PyObject *py_cmdv)
 {
-	/* runs a command asynchronously; usable from Python subthreads */
+	PyObject *command, *result;
+
+	command = Py_BuildValue("(IO)", command_id, py_cmdv);
+	command_id++;
+
+	fprintf(stderr, "appending...\n");
+	if (command == NULL || PyList_Append(command_q, command) != 0) {
+		PyErr_SetString(PyExc_RuntimeError, "Unable to queue command!");
+		return NULL;
+	}
+
+	fprintf(stderr, "waiting....\n");
+	while (PySequence_Contains(command_q, command) == 1 || 
+			PyDict_Contains(result_map, PyTuple_GET_ITEM(command, 0)) == 0) {
+		/* TODO: add deadlock prevention, timeout */
+		Py_BEGIN_ALLOW_THREADS
+		fprintf(stderr, "doot!\n");
+		usleep(333333);
+		Py_END_ALLOW_THREADS
+	}
+
+	fprintf(stderr, "fetching.....\n");
+	result = PyDict_GetItem(result_map, PyTuple_GET_ITEM(command, 0));
+	PyDict_DelItem(result_map, PyTuple_GET_ITEM(command, 0));
+	Py_DECREF(command);
+
+	return result;
 }
 
-void process_queued_commands(void)
+static void drain_command_q(void)
 {
 	PyGILState_STATE gst;
+	PyObject *command, *result;
+	Py_ssize_t i, j;
+
 	gst = PyGILState_Ensure();
+	j = PyList_GET_SIZE(command_q);
+
+	fprintf(stderr, "** TRACE: drain queue (depth=%zu)\n", j);
+
+	for (i = 0; i < j; i++) {
+		command = PyList_GET_ITEM(command_q, i);
+		result = run_command(PyTuple_GET_ITEM(command, 1));
+		
+		PyDict_SetItem(result_map, PyTuple_GET_ITEM(command, 0), result);
+	}
+	
+	if (j > 0) {
+		fprintf(stderr, "Drained %zu items\n", j);
+		Py_DECREF(command_q);      /* GC the old queue */
+		command_q = PyList_New(0); /* create a new, empy queue */
+	}
 	
 	PyGILState_Release(gst);
 }
@@ -71,8 +122,13 @@ void process_queued_commands(void)
 
 static PyObject * TclBridge_call(PyObject *self, PyObject *args)
 {	
-	run_command(args);
-	return Py_None;
+	if (PyThreadState_Get() == main_thread) {
+		fprintf(stderr, "*** RUNNING COMMAND (%u) ***\n", pthread_self());
+		return run_command(args);
+	} else {
+		fprintf(stderr, "*** PUTTING CMD IN Q (%u) ***\n", pthread_self());
+		return run_queued(args);
+	}
 }
 
 
@@ -125,4 +181,24 @@ PyTypeObject TclBridgeType = {
 	0,                                        /* tp_new */
 	0,                                        /* tp_free */
 };
+
+void bridge_init(void)
+{
+	PyEval_InitThreads();
+	main_thread = PyThreadState_Get();
+
+	TclBridgeType.ob_type = &PyType_Type;
+	TclBridgeType.tp_new = PyType_GenericNew;
+	PyType_Ready(&TclBridgeType);
+
+	command_q  = PyList_New(0);
+	result_map = PyDict_New();
+
+	add_hook(HOOK_SECONDLY, (Function) drain_command_q);
+}
+
+void bridge_cleanup(void)
+{
+	del_hook(HOOK_SECONDLY, (Function) drain_command_q);
+}
 

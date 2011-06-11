@@ -29,10 +29,8 @@
 
 #include "bridge.h"
 #include "pymod.h"
-#include "../module.h"
 
-#undef global
-Function *global = NULL;
+unsigned short have_interp = 0;
 
 static khash_t(pymods) *pymod_table;
 static uint32_t pymod_base_id = 0;
@@ -145,6 +143,8 @@ static void python_report(int idx, int details)
 
 static char * python_close()
 {
+	bridge_cleanup();
+
 	kh_destroy(pymods, pymod_table);
 
 	rem_tcl_commands(tcl_commandtab);
@@ -172,8 +172,7 @@ static Function python_table[] = {
 
 char * python_start(Function *global_funcs)
 {
-	PyObject *api = NULL,
-			 *mod = NULL;
+	PyObject *mod = NULL;
 
 	/* fixup external linkage */
 	global = global_funcs;
@@ -186,23 +185,20 @@ char * python_start(Function *global_funcs)
 		return "This module requires Eggdrop 1.6.0 or later.";
 	}
 
+
 	memset(python_path, 0, 2048);
 	python_isolate = 0;
 
 	Py_InitializeEx(0);
 	mod = Py_InitModule("eggdrop", NULL);
 
-	TclBridgeType.ob_type = &PyType_Type;
-	TclBridgeType.tp_new = PyType_GenericNew;
-
-	if (PyType_Ready(&TclBridgeType) < 0)
-        return "Failed PyType_Ready";
-
 	Py_INCREF((PyObject*) &TclBridgeType);
     PyModule_AddObject(mod, "TclBridge", (PyObject*) &TclBridgeType);
 	
 	/*api = _PyObject_New(&TclBridgeType);
     PyModule_AddObject(mod, "api", api);*/
+
+	bridge_init();
 
 	ns = Tcl_CreateNamespace(interp, "python", NULL, NULL);
 	add_tcl_commands(tcl_commandtab);

@@ -10,4 +10,7 @@ typedef struct {
   PyObject *attr;
 } TclBridge;
 
+void bridge_init(void);
+void bridge_cleanup(void);
+
 #endif

@@ -28,4 +28,7 @@ typedef struct {
 
 KHASH_MAP_INIT_INT(pymods, pymod_t);
 
+/* controls access to Tcl interp (mainthread only) */
+unsigned short irp_lock;
+
 #endif
