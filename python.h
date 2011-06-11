@@ -1,7 +1,10 @@
 #ifndef _PYMOD_H_
 #define _PYMOD_H_
 
-#include <Python.h>
+#include <pthread.h>
+#include <python2.6/Python.h>
+#include <sys/queue.h>
+
 #include "../module.h"
 
 #define MODULE_NAME			"python"
@@ -12,5 +15,20 @@
 /* replace "global" macro with pointer initialized in python_init */
 #undef global
 Function *global;
+
+/* module accounting */
+#define MODLOAD_FAIL		0
+#define MODLOAD_SUCCESS		1
+
+struct module {
+	char                  *name;
+	uint8_t               status;
+
+	pthread_t             thread;
+	pthread_mutex_t       mtx;
+	pthread_cond_t        loaded;
+
+	TAILQ_ENTRY(module)   tq;
+};
 
 #endif

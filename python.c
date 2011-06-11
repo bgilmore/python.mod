@@ -28,12 +28,49 @@
  */
 
 #include "python.h"
+#include "pythread.h"
+
+TAILQ_HEAD(mh, module) modules;
+
+static void dealloc_module(struct module *mod)
+{
+	nfree(mod->name);
+	
+	pthread_mutex_destroy(&mod->mtx);
+	pthread_cond_destroy(&mod->loaded);
+
+	nfree(mod);
+}
 
 /*** TCL api ***/
 
 static int tcl_loadmodule_python STDVAR
 {
-	return TCL_OK;
+	struct module *mod;
+
+	mod = (struct module *) nmalloc(sizeof(struct module));
+	if (mod == NULL) {
+		dprintf(DP_LOG, "*** allocation error ***");
+		return TCL_ERROR;
+	}
+
+	memset(mod, 0, sizeof(struct module));
+	mod->name = strdup(argv[1]);
+
+	pthread_mutex_init(&mod->mtx, NULL);
+	pthread_cond_init(&mod->loaded, NULL);
+
+	pthread_mutex_lock(&mod->mtx);
+	pthread_create(&mod->thread, NULL, pythread_load, (void *) mod);
+	pthread_cond_wait(&mod->loaded, &mod->mtx);
+
+	if (mod->status != MODLOAD_SUCCESS) {
+		dealloc_module(mod);
+		return TCL_ERROR;
+	} else {
+		TAILQ_INSERT_TAIL(&modules, mod, tq);
+		return TCL_OK;
+	}
 }
 
 static tcl_cmds tcl_commandtab[] = {
@@ -42,7 +79,7 @@ static tcl_cmds tcl_commandtab[] = {
 };
 
 
-/*** housekeeping ***/
+/*** module interface ***/
 
 static int python_expmem(void)
 {
@@ -81,6 +118,8 @@ char * python_start(Function *global_funcs)
 	/* fixup external linkage */
 	global = global_funcs;
 
+	TAILQ_INIT(&modules);
+
 	module_register(MODULE_NAME, python_table, \
 			MODULE_VER_MAJOR, MODULE_VER_MINOR);
 
@@ -90,6 +129,8 @@ char * python_start(Function *global_funcs)
 	}
 
 	add_tcl_commands(tcl_commandtab);
+
+	Py_InitializeEx(0);
 
 	return NULL;
 }

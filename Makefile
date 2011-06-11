@@ -1,7 +1,7 @@
 ## Makefile for src/mod/python.mod
 
 srcdir  = .
-objects = python.o
+objects = python.o pythread.o
 
 # needed for building on OSX
 PYTHON_INCLUDE = /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6
