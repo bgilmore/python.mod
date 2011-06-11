@@ -35,7 +35,8 @@ TAILQ_HEAD(mh, module) modules;
 static void dealloc_module(struct module *mod)
 {
 	nfree(mod->name);
-	
+
+	Py_EndInterpreter(mod->irp);
 	pthread_mutex_destroy(&mod->mtx);
 	pthread_cond_destroy(&mod->loaded);
 
@@ -66,6 +67,7 @@ static int tcl_loadmodule_python STDVAR
 
 	if (mod->status != MODLOAD_SUCCESS) {
 		dealloc_module(mod);
+		Tcl_AppendResult(irp, "Unable to load '", argv[1], "' module", NULL);
 		return TCL_ERROR;
 	} else {
 		TAILQ_INSERT_TAIL(&modules, mod, tq);
@@ -131,6 +133,7 @@ char * python_start(Function *global_funcs)
 	add_tcl_commands(tcl_commandtab);
 
 	Py_InitializeEx(0);
+	PyEval_InitThreads();
 
 	return NULL;
 }

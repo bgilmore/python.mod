@@ -24,6 +24,9 @@ struct module {
 	char                  *name;
 	uint8_t               status;
 
+	PyThreadState         *irp;
+	PyGILState_STATE      gst;
+
 	pthread_t             thread;
 	pthread_mutex_t       mtx;
 	pthread_cond_t        loaded;
