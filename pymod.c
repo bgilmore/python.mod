@@ -27,20 +27,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "api.h"
 #include "bridge.h"
 #include "pymod.h"
 #include "../module.h"
 
 #undef global
-static Function *global = NULL;
-extern uint8_t api_available;
+Function *global = NULL;
 
-extern khash_t(callbacks) *callback_table;
 static khash_t(pymods) *pymod_table;
 static uint32_t pymod_base_id = 0;
 
-extern PyMethodDef api_table[];
 static Tcl_Namespace *ns = NULL;
 
 /*** configurables ***/
@@ -70,8 +66,6 @@ static int tcl_load_python STDVAR
 	uint32_t pymod_id;
 	int32_t k, r;
 
-	API_ACTIVE();
-
 	// fix the value of 'python-isolate' for the lifetime of the module
 	if (python_isolated == -1) {
 		switch (python_isolate) {
@@ -92,7 +86,7 @@ static int tcl_load_python STDVAR
 	if (python_isolated) {
 		subint = Py_NewInterpreter();
 		PyThreadState_Swap(subint);
-		Py_InitModule("eggdrop", api_table);
+		Py_InitModule("eggdrop", NULL);
 	}
 
 	modname = PyString_FromString(argv[1]);
@@ -120,14 +114,12 @@ static int tcl_load_python STDVAR
 	pymod->subint = subint;
 	pymod->module = module;
 	
-	API_INACTIVE();
 	return TCL_OK;
 
 err:
 	if (subint != NULL)
 		Py_EndInterpreter(subint);
 
-	API_INACTIVE();
 	return TCL_ERROR;
 }
 
@@ -154,7 +146,6 @@ static void python_report(int idx, int details)
 static char * python_close()
 {
 	kh_destroy(pymods, pymod_table);
-	kh_destroy(callbacks, callback_table);
 
 	rem_tcl_commands(tcl_commandtab);
 	rem_tcl_strings(tcl_stringtab);
@@ -199,9 +190,19 @@ char * python_start(Function *global_funcs)
 	python_isolate = 0;
 
 	Py_InitializeEx(0);
-	mod = Py_InitModule("eggdrop", api_table);
-	api = _PyObject_New(&TclBridgeType);
-    PyModule_AddObject(mod, "api", api);
+	mod = Py_InitModule("eggdrop", NULL);
+
+	TclBridgeType.ob_type = &PyType_Type;
+	TclBridgeType.tp_new = PyType_GenericNew;
+
+	if (PyType_Ready(&TclBridgeType) < 0)
+        return "Failed PyType_Ready";
+
+	Py_INCREF((PyObject*) &TclBridgeType);
+    PyModule_AddObject(mod, "TclBridge", (PyObject*) &TclBridgeType);
+	
+	/*api = _PyObject_New(&TclBridgeType);
+    PyModule_AddObject(mod, "api", api);*/
 
 	ns = Tcl_CreateNamespace(interp, "python", NULL, NULL);
 	add_tcl_commands(tcl_commandtab);
@@ -209,7 +210,6 @@ char * python_start(Function *global_funcs)
 	add_tcl_ints(tcl_inttab);
 
 	pymod_table = kh_init(pymods);
-	callback_table = kh_init(callbacks);
 	
 	return NULL;
 }

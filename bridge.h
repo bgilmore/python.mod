@@ -3,7 +3,7 @@
 
 #include <Python.h>
 
-PyTypeObject TclBridgeType;
+PyAPI_DATA(PyTypeObject) TclBridgeType;
 
 typedef struct {
   PyObject_HEAD

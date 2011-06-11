@@ -1,66 +1,89 @@
 #include "bridge.h"
-#include "../module.h"
+#include "pymod.h"
 
-#undef global
-static Function *global = NULL;
-
-PyObject * TclBridge_call(PyObject *self, PyObject *args)
-{	
-	Tcl_Obj *cmdv  = NULL,
-			**argv = NULL,
-	        *t_arg = NULL;
-	PyObject *p_arg  = NULL;
-	Py_ssize_t i, len;
+static int run_command(PyObject *py_cmdv)
+{
+	Tcl_Obj *tcl_cmdv, *tcl_arg, **objv;
+	PyObject *py_arg;
+	Py_ssize_t len, i;
 	char *strbuf;
-	int argc;
+	int objc;
 
-	/* allocate Tcl list to hold command + args */
-	cmdv = Tcl_NewListObj(0, NULL);
+	/* allocate empty list to hold translated cmdv */
+	tcl_cmdv = Tcl_NewListObj(0, NULL);
 
-	/* marshal command/proc name into cmdv */
-	p_arg = PyTuple_GET_ITEM(args, 0);
 
-	if (PyString_Check(p_arg) == 0) {
-		PyErr_SetString(PyExc_TypeError, "command must be passed as a string");
+	/* marshal proc name */
+	py_arg = PyTuple_GET_ITEM(py_cmdv, 0);
+
+	if (PyString_Check(py_arg) == 0) {
+		PyErr_SetString(PyExc_TypeError, "proc name must be passed as a string");
 		goto out;
 	}
 
-	PyString_AsStringAndSize(p_arg, &strbuf, &len);
-	t_arg = Tcl_NewStringObj(strbuf, len);
-	Tcl_ListObjAppendElement(interp, cmdv, t_arg);
+	PyString_AsStringAndSize(py_arg, &strbuf, &len);
+	tcl_arg = Tcl_NewStringObj(strbuf, len);
 
-	/* marshal arguments into cmdv */
-	for (i = 1; i < PyTuple_GET_SIZE(args); i++) {
-		/* stringify argument */
-		p_arg = PyObject_Str(PyTuple_GET_ITEM(args, i));
-		if (p_arg == NULL) {
+	Tcl_ListObjAppendElement(NULL, tcl_cmdv, tcl_arg);
+
+
+	/* marshal arguments */
+	for (i = 1; i < PyTuple_GET_SIZE(py_cmdv); i++) {
+		/* make a copy of the argument, enforcing stringification */
+		py_arg = PyObject_Str(PyTuple_GET_ITEM(py_cmdv, i));
+		if (py_arg == NULL) {
 			PyErr_SetString(PyExc_TypeError,
 				"all arguments must be callable or coercible to str");
 			goto out;
 		}
 
-		/* copy from Python scope into Tcl scope */
-		PyString_AsStringAndSize(p_arg, &strbuf, &len);
-		t_arg = Tcl_NewStringObj(strbuf, len);
-		Tcl_ListObjAppendElement(interp, cmdv, t_arg);
+		PyString_AsStringAndSize(py_arg, &strbuf, &len);
+		tcl_arg = Tcl_NewStringObj(strbuf, len);
+
+		Tcl_ListObjAppendElement(NULL, tcl_cmdv, tcl_arg);
 
 		/* delete stringified copy of argument */
-		Py_DECREF(p_arg);
+		Py_DECREF(py_arg);
 	}
 
-	Tcl_ListObjGetElements(NULL, cmdv, &argc, &argv);
-	Tcl_EvalObjv(interp, i, argv, TCL_EVAL_GLOBAL);
+	// execute translated cmdv (split into objv)
+	Tcl_ListObjGetElements(interp, tcl_cmdv, &objc, &objv);
+	Tcl_EvalObjv(interp, objc, objv, TCL_EVAL_GLOBAL);
 
 out:
-	Tcl_DecrRefCount(cmdv);
+	Tcl_DecrRefCount(tcl_cmdv);
+	return 0;
+}
+
+static int queue_command(Tcl_Obj *cmdv)
+{
+	/* runs a command asynchronously; usable from Python subthreads */
+}
+
+void process_queued_commands(void)
+{
+	PyGILState_STATE gst;
+	gst = PyGILState_Ensure();
+	
+	PyGILState_Release(gst);
+}
+
+
+static PyObject * TclBridge_call(PyObject *self, PyObject *args)
+{	
+	run_command(args);
 	return Py_None;
 }
 
+
+PyDoc_STRVAR(TclBridgeDoc,
+	"TclBridge()\n\nGives Python access to the Eggdrop TCL interpreter");
+
 PyTypeObject TclBridgeType = {
-	PyObject_HEAD_INIT(0)
+	PyObject_HEAD_INIT(NULL)
 	0,                                        /* ob_size */
 	"eggdrop.TclBridge",                      /* tp_name */
-	0,                                        /* tp_basicsize */
+	sizeof(TclBridge),                        /* tp_basicsize */
 	0,                                        /* tp_itemsize */
 
 
@@ -75,14 +98,14 @@ PyTypeObject TclBridgeType = {
 	0,                                        /* tp_as_number*/
 	0,                                        /* tp_as_sequence */
 	0,                                        /* tp_as_mapping */
-	0,                                        /* tp_hash */
+	(hashfunc) PyObject_HashNotImplemented,   /* tp_hash */
 	(ternaryfunc) TclBridge_call,             /* tp_call */
 	0,                                        /* tp_str */
 	PyObject_GenericGetAttr,                  /* tp_getattro */
 	0,                                        /* tp_setattro */
 	0,                                        /* tp_as_buffer */
-	0,                                        /* tp_flags */
-	0,                                        /* tp_doc */
+	Py_TPFLAGS_HAVE_CLASS,                    /* tp_flags */
+	TclBridgeDoc,                             /* tp_doc */
 	0,                                        /* tp_traverse */
 	0,                                        /* tp_clear */
 	0,                                        /* tp_richcompare */
