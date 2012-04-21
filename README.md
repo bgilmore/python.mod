@@ -1,6 +1,15 @@
 python.mod
 ==========
 
+```
+    NOTE: This project has gone largely unmaintained since 2011. I ran into
+          event model issues I had ideas about fixing, but frankly this
+          project just isn't a priority right now.
+          
+          Feel free to fork and adapt as you see fit, but be aware that the
+          module is mostly non-functional.
+```
+
 Tcl is awful. Seriously, **awful**. This module allows you to write Eggdrop
 scripts in Python instead.
 
